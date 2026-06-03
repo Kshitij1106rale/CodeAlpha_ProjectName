@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Translation Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        select, button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        select {
+            flex: 1;
+            cursor: pointer;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-secondary {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            flex: 1;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #bdc3c7;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #7f8c8d;
+            display: none;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Translation Tool</h2>
+    
+    <div class="controls">
+        <select id="sourceLang">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="hi">Hindi</option>
+            <option value="zh">Chinese</option>
+        </select>
+        <select id="targetLang">
+            <option value="es">Spanish</option>
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="hi">Hindi</option>
+            <option value="zh">Chinese</option>
+        </select>
+    </div>
+
+    <textarea id="inputText" placeholder="Enter text to translate here..."></textarea>
+    
+    <button class="btn-primary" onclick="translateText()">Translate</button>
+    
+    <div id="loadingIndicator" class="loading">Translating...</div>
+
+    <h3 style="margin-top: 20px; font-size: 16px;">Translation:</h3>
+    <textarea id="outputText" readonly placeholder="Translation will appear here..."></textarea>
+
+    <div class="action-buttons">
+        <button class="btn-secondary" onclick="copyText()">📋 Copy Text</button>
+        <button class="btn-secondary" onclick="speakText()">🔊 Listen</button>
+    </div>
+</div>
+
+<script>
+    async function translateText() {
+        const text = document.getElementById('inputText').value.trim();
+        const sourceLang = document.getElementById('sourceLang').value;
+        const targetLang = document.getElementById('targetLang').value;
+        const outputBox = document.getElementById('outputText');
+        const loading = document.getElementById('loadingIndicator');
+
+        if (!text) {
+            alert("Please enter some text to translate.");
+            return;
+        }
+
+        if (sourceLang === targetLang) {
+            outputBox.value = text;
+            return;
+        }
+
+        // Show loading state
+        loading.style.display = 'block';
+        outputBox.value = '';
+
+        try {
+            // Using MyMemory API for client-side testing (No API key needed for basic usage)
+            // To use Google or Microsoft, replace this URL with their specific endpoints and include your API keys in the headers.
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.responseData && data.responseData.translatedText) {
+                outputBox.value = data.responseData.translatedText;
+            } else {
+                outputBox.value = "Error: Could not fetch translation.";
+            }
+        } catch (error) {
+            console.error("Translation API Error:", error);
+            outputBox.value = "An error occurred while connecting to the translation service.";
+        } finally {
+            // Hide loading state
+            loading.style.display = 'none';
+        }
+    }
+
+    function copyText() {
+        const outputText = document.getElementById('outputText');
+        if (!outputText.value) {
+            alert("Nothing to copy!");
+            return;
+        }
+        
+        // Modern Clipboard API
+        navigator.clipboard.writeText(outputText.value).then(() => {
+            alert("Text copied to clipboard!");
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+
+    function speakText() {
+        const textToSpeak = document.getElementById('outputText').value;
+        const targetLang = document.getElementById('targetLang').value;
+
+        if (!textToSpeak) {
+            alert("Nothing to read aloud!");
+            return;
+        }
+
+        // Using Web Speech API for Text-to-Speech
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        
+        // Map our simple language codes to standard BCP 47 language tags for speech synthesis
+        const langMap = {
+            'en': 'en-US',
+            'es': 'es-ES',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'hi': 'hi-IN',
+            'zh': 'zh-CN'
+        };
+        
+        utterance.lang = langMap[targetLang] || 'en-US';
+        window.speechSynthesis.speak(utterance);
+    }
+</script>
+
+</body>
+</html>
